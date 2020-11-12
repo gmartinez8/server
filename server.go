@@ -1,6 +1,6 @@
 //Package serverservice implements a simple library for a http server
 //You can create a server, add the routes you want to handle
-package serverservice
+package server
 
 import (
 	"context"
