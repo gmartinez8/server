@@ -3,6 +3,7 @@
 package serverservice
 
 import (
+	"context"
 	"log"
 	"net/http"
 )
@@ -26,17 +27,27 @@ func NewServer(port string) *Server {
 //Run starts the server and asign *Router  to handle the routes
 //Router its a map[string][string]http.HandlerFunc
 //map[path][method]http.HandlerFunc
-func (sr *Server) Run() error {
+func (sr *Server) Run(ctx context.Context) error {
 	log.Printf("HTTP Server is starting to listen on 0.0.0.0%s", sr.port)
 	http.Handle("/", sr.router)
+	//creating a type Server
+	s := &http.Server{Addr: "0.0.0.0" + sr.port}
+	ch := make(chan error)
 
-	err := http.ListenAndServe(sr.port, nil)
-	if err != nil {
-		log.Fatalln("Unable to run server on port", sr.port)
+	go func(s *http.Server, ch chan error) {
+		ch <- s.ListenAndServe()
+	}(s, ch)
+
+	select {
+	case err := <-ch:
+		log.Printf("server returned and error: %v", err)
 		return err
+	case <-ctx.Done():
+		//if parent context is Done this will be executed
+		//log.Println("context is canceled")
+		return s.Close()
 	}
 
-	return nil
 }
 
 //Handle defines/register the routes i want to handle
